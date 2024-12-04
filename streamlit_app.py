@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from PIL import Image
+from pymongo import MongoClient
+
 # Function to load the model
 @st.cache_data
 def load_model():
@@ -11,18 +14,90 @@ def load_model():
 # Load your model
 loaded_model = load_model()
 
+# MongoDB Connection
+client = MongoClient("mongodb://localhost:27017")  # Local MongoDB connection
+db = client['calorie_burn_db']  # Replace with your database name
+feedback_collection = db['feedback']  # Feedback collection
+
+# Ensure the database and collection are created
+# if not feedback_collection.find_one():  # Check if the collection is empty
+#     feedback_collection.insert_one({"name": "Test", "email": "test@example.com", "feedback_type": "General", "feedback_message": "Initial test feedback"})
+
+
+# Add custom CSS and a background image
+st.markdown(
+    f"""
+    <style>
+        body {{
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }}
+        .main-heading {{
+            font-size: 3rem;
+            font-weight: bold;
+            color: #FFA500;
+            text-align: center;
+            text-shadow: 2px 2px 5px #000000;
+            margin-top: 20px;
+        }}
+        .subheading {{
+            font-size: 1.5rem;
+            color: #FFFFFF;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: fade-in 2s ease-in-out;
+        }}
+        @keyframes fade-in {{
+            from {{opacity: 0;}}
+            to {{opacity: 1;}}
+        }}
+        .sidebar-title {{
+            font-weight: bold;
+            color: #FFA500;
+        }}
+        .prediction {{
+            font-size: 1.5rem;
+            color: #FFFFFF;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+        }}
+    </style>
+    """, 
+    unsafe_allow_html=True
+)
 
 # Sidebar for navigation
-st.sidebar.title('Navigation')
-options = st.sidebar.selectbox('Select a page:', 
-                           ['Prediction', 'Code', 'About'])
+st.sidebar.markdown('<span class="sidebar-title">Navigation</span>', unsafe_allow_html=True)
+options = st.sidebar.selectbox('Select a page:', ['Home', 'Prediction', 'Contact'])
 
-if options == 'Prediction': # Prediction page
-    st.title('Calories Burnt Prediction Web App')
+# Home Page
+if options == 'Home':
+    st.markdown('<div class="main-heading">Smart Calorie Burn Analyzer</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subheading">Welcome to the Smart Calorie Burn Analyzer App!</div>', unsafe_allow_html=True)
+    st.write("This app helps you predict the calories burned during physical activities based on your personal inputs like age, weight, height, gender, heart rate, and activity duration.")
+    image = Image.open('home2.jpg')  # Adjust the path if needed
+    st.image(image, caption='Welcome to the Calorie Burn Prediction App', use_container_width=True)
 
-    # Index(['gender', 'age', 'height', 'weight', 'duration', 'heart_rate','body_temp'],
+    st.write("### How it works:")
+    st.write("1. Enter your personal details and activity information.")
+    st.write("2. Click on 'Predict' to calculate the calories burned.")
+    st.write("3. Use the result to track your fitness goals and monitor your progress.")
+    image = Image.open('home3.webp')  # Adjust the path if needed
+    st.image(image, caption='Welcome to the Calorie Burn Prediction App', use_container_width=True)
+
+# Prediction Page
+elif options == 'Prediction':
+    st.markdown('<div class="main-heading">Smart Calorie Burn Analyzer</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subheading">Predict your calories burned based on your inputs</div>', unsafe_allow_html=True)
+
     # User inputs
-    gender = st.selectbox('Gender', ['Male','Female'])
+    gender = st.selectbox('Gender', ['Male', 'Female'])
     age = st.number_input('Age', 1, 100, 25)
     height = st.number_input('Height in cm', 100, 250, 170)
     weight = st.number_input('Weight in kg', 30, 200, 70)
@@ -39,60 +114,52 @@ if options == 'Prediction': # Prediction page
         'heart_rate': heart_rate,
         'body_temp': body_temp
     }
-    
+
     if st.button('Predict'):
         prediction = loaded_model.predict(pd.DataFrame(user_inputs, index=[0]))
-        st.markdown(f'**The predicted Calories Burnt is: {prediction[0]:,.2f}**')  # Display prediction with bold
-        
-        with st.expander("Show more details"):
-            st.write("Details of the prediction:")
-            
-            st.write('Model used: Random Forest Regressor')
-            
-elif options == 'Code':
-    st.header('Code')
-    # Add a button to download the Jupyter notebook (.ipynb) file
-    notebook_path = 'calories_burnt_prediction.ipynb'
-    with open(notebook_path, "rb") as file:
-        btn = st.download_button(
-            label="Download Jupyter Notebook",
-            data=file,
-            file_name="calories_burnt_prediction.ipynb",
-            mime="application/x-ipynb+json"
+        st.markdown(
+            f'<div class="prediction">The predicted Calories Burnt is: <strong>{prediction[0]:,.2f}</strong></div>',
+            unsafe_allow_html=True
         )
-    st.write('You can download the Jupyter notebook to view the code and the model building process.')
-    st.write('--'*50)
 
-    st.header('Data')
-    # Add a button to download your dataset
-    data_path = 'calories_data.csv'
-    with open(data_path, "rb") as file:
-        btn = st.download_button(
-            label="Download Dataset",
-            data=file,
-            file_name="calories_data.csv",
-            mime="text/csv"
-        )
-    st.write('You can download the dataset to use it for your own analysis or model building.')
-    st.write('--'*50)
+# Contact Page
+elif options == 'Contact':
+    st.markdown('<div class="main-heading">Contact Us</div>', unsafe_allow_html=True)
+    st.write('We would love to hear from you! Whether you have feedback, questions, or need support, feel free to get in touch with us.')
 
-    st.header('GitHub Repository')
-    st.write('You can view the code and the dataset used in this web app from the GitHub repository:')
-    st.write('[GitHub Repository](https://github.com/gokulnpc/Calories-Burnt-Prediction)')
-    st.write('--'*50)
-    
-elif options == 'About':
-    st.title('About')
-    st.write('This web app is created to predict the calories burnt based on the user inputs such as gender, age, height, weight, duration, heart rate, and body temperature.')
-    st.write('The model used in this web app is a Random Forest Regressor model trained on the dataset with 15000 samples.')
-    st.write('The dataset used in this web app is collected from the Kaggle dataset: [Dataset](https://www.kaggle.com/datasets/fmendes/fmendesdat263xdemos).')
-    
-    st.write('The web app is open-source. You can view the code and the dataset used in this web app from the GitHub repository:')
-    st.write('[GitHub Repository](https://github.com/gokulnpc/Calories-Burnt-Prediction)')
-    st.write('--'*50)
+    # Feedback Form
+    st.write('### Feedback Form:')
+    name = st.text_input('Name')
+    email = st.text_input('Email')
+    feedback_type = st.selectbox('Feedback Type', ['General', 'Bug Report', 'Feature Request'])
+    feedback_message = st.text_area('Feedback Message')
 
-    st.header('Contact')
-    st.write('You can contact me for any queries or feedback:')
-    st.write('Email: gokulnpc@gmail.com')
-    st.write('LinkedIn: [Gokuleshwaran Narayanan](https://www.linkedin.com/in/gokulnpc/)')
-    st.write('--'*50)
+    if st.button('Submit Feedback'):
+        if name and email and feedback_message:
+            feedback_data = {
+                'name': name,
+                'email': email,
+                'feedback_type': feedback_type,
+                'feedback_message': feedback_message
+            }
+            try:
+                feedback_collection.insert_one(feedback_data)
+                st.success("Thank you for your feedback! It has been saved.")
+            except Exception as e:
+                st.error(f"Failed to save feedback: {e}")
+        else:
+            st.error("Please fill in all fields before submitting.")
+
+    # Display existing feedback
+    st.write('### Recent Feedback:')
+    try:
+        feedbacks = feedback_collection.find().sort('_id', -1).limit(5)
+        for feedback in feedbacks:
+            st.write(f"**Name:** {feedback['name']}")
+            st.write(f"**Type:** {feedback['feedback_type']}")
+            st.write(f"**Message:** {feedback['feedback_message']}")
+            st.write("---")
+    except Exception as e:
+        st.error(f"Failed to retrieve feedback: {e}")
+    image = Image.open('contact.webp')  # Adjust the path if needed
+    st.image(image, caption='Welcome to the Calorie Burn Prediction App', use_container_width=True)
